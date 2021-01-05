@@ -40,7 +40,7 @@ Config = {
     BlipName = "Technician", -- Name of the marker on the map
     JobBlipName = "Technician Job", -- Name of the marker on the map
 
-    MoneyType = false, -- True= Cash | False= Bank
+    MoneyType = true, -- True= Cash | False= Bank
     MoneyAmount = 100, -- Money you get for completing 1 job
 
     Translation = "EN", -- Translation to use

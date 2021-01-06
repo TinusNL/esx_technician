@@ -42,8 +42,8 @@
 }
 
 .fusebutton {
-    background-color: rgb(0, 0, 0);
-    color: orange;
+    background-color: orange;
+    color: rgb(0, 0, 0);
     font-weight: bold;
     font-size: large;
     width: 160%;

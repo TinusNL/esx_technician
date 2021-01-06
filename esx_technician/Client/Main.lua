@@ -13,6 +13,7 @@ local PlayerData = {}
 MenuOpened = false
 OnDuty = false
 CurrentJob = nil
+LastVehicle = 0
 
 MainBlip = nil
 
@@ -251,9 +252,9 @@ DeleteCoords = vector3(Config.VehicleDelete.X, Config.VehicleDelete.Y, Config.Ve
 
 Citizen.CreateThread(function() -- Locker
 	while true do
-		if ESX ~= nil then
-			Citizen.Wait(1)
+		Citizen.Wait(1)
 
+		if ESX ~= nil then
 			PlayerJobInfo = ESX.PlayerData.job
 
 			if PlayerJobInfo ~= nil then
@@ -317,9 +318,9 @@ end)
 
 Citizen.CreateThread(function() -- Garage
 	while true do
-		if ESX ~= nil then
-			Citizen.Wait(1)
+		Citizen.Wait(1)
 
+		if ESX ~= nil then
 			if OnDuty == true then
 				PlayerCoords = GetEntityCoords(PlayerPedId())
 				PlayerVehicle = GetVehiclePedIsIn(PlayerPedId())
@@ -359,12 +360,10 @@ Citizen.CreateThread(function() -- Garage
 end)
 
 Citizen.CreateThread(function() -- Deleter
-	LastVehicle = 0
-
 	while true do
-		if ESX ~= nil then
-			Citizen.Wait(1)
+		Citizen.Wait(1)
 
+		if ESX ~= nil then
 			if OnDuty == true then
 				PlayerCoords = GetEntityCoords(PlayerPedId())
 				PlayerVehicle = GetVehiclePedIsIn(PlayerPedId())
@@ -427,9 +426,9 @@ end)
 
 Citizen.CreateThread(function() -- Jobs
 	while true do
-		if ESX ~= nil then
-			Citizen.Wait(1)
+		Citizen.Wait(1)
 
+		if ESX ~= nil then
 			if OnDuty == true and CurrentJob ~= nil then
 				if CurrentJob.Enabled == false then
 					PlayerCoords = GetEntityCoords(PlayerPedId())

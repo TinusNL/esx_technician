@@ -245,29 +245,104 @@ RegisterNUICallback("main", function(RequestData)
 	end
 end)
 
-Citizen.CreateThread(function()
+LockerCoords = vector3(Config.Locker.X, Config.Locker.Y, Config.Locker.Z)
+GarageCoords = vector3(Config.Garage.X, Config.Garage.Y, Config.Garage.Z)
+DeleteCoords = vector3(Config.VehicleDelete.X, Config.VehicleDelete.Y, Config.VehicleDelete.Z)
+
+Citizen.CreateThread(function() -- Locker
 	while true do
 		if ESX ~= nil then
 			Citizen.Wait(1)
 
 			PlayerJobInfo = ESX.PlayerData.job
 
-			if PlayerJobInfo.name == "technician" then
-				PlayerCoords = GetEntityCoords(PlayerPedId())
-				PlayerVehicle = GetVehiclePedIsIn(PlayerPedId())
-				LockerCoords = vector3(Config.Locker.X, Config.Locker.Y, Config.Locker.Z)
-				GarageCoords = vector3(Config.Garage.X, Config.Garage.Y, Config.Garage.Z)
-				DeleteCoords = vector3(Config.VehicleDelete.X, Config.VehicleDelete.Y, Config.VehicleDelete.Z)
+			if PlayerJobInfo ~= nil then
+				if PlayerJobInfo.name == "technician" then
+					PlayerCoords = GetEntityCoords(PlayerPedId())
+					PlayerVehicle = GetVehiclePedIsIn(PlayerPedId())
 
-				if Vdist2(PlayerCoords, LockerCoords) <= 1.5 and PlayerVehicle == 0 then
-					ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["LOCKER_HELP"], true, false, 1)
-				
-					if IsControlJustPressed(1, 51) then
-						if MenuOpened == false then
-							OpenLocker()
+					if Vdist2(PlayerCoords, LockerCoords) <= 1.5 and PlayerVehicle == 0 then
+						ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["LOCKER_HELP"], true, false, 1)
+					
+						if IsControlJustPressed(1, 51) then
+							if MenuOpened == false then
+								OpenLocker()
+							end
 						end
 					end
+
+					-- Blip
+					if MainBlip == nil then
+						MainBlip = AddBlipForCoord(Config.Locker.X, Config.Locker.Y, Config.Locker.Z)
+						SetBlipSprite(MainBlip, 354)
+						SetBlipDisplay(MainBlip, 4)
+						SetBlipScale(MainBlip, 1.5)
+						SetBlipColour(MainBlip, 64)
+						SetBlipAsShortRange(MainBlip, true)
+						BeginTextCommandSetBlipName("STRING")
+						AddTextComponentString(Config.BlipName)
+						EndTextCommandSetBlipName(MainBlip)
+					end
+
+					-- Circle
+					DrawMarker(
+						25, -- Type
+						Config.Locker.X, Config.Locker.Y, Config.Locker.Z - 0.98, -- Position
+						0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
+						1.5, 1.5, 1.5, -- Scale
+						255, 120, 0, 155, -- Color
+						false, true, 2, nil, nil, false -- Extra
+					)
+
+					-- Stripes
+					DrawMarker(
+						30, -- Type
+						Config.Locker.X, Config.Locker.Y, Config.Locker.Z, -- Position
+						0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
+						0.75, 0.75, 0.75, -- Scale
+						255, 120, 0, 155, -- Color
+						false, true, 2, nil, nil, false -- Extra
+					)
+
+				else
+					if MainBlip ~= nil then
+						RemoveBlip(MainBlip)
+						MainBlip = nil
+					end
 				end
+			end
+		end
+	end
+end)
+
+Citizen.CreateThread(function() -- Garage
+	while true do
+		if ESX ~= nil then
+			Citizen.Wait(1)
+
+			if OnDuty == true then
+				PlayerCoords = GetEntityCoords(PlayerPedId())
+				PlayerVehicle = GetVehiclePedIsIn(PlayerPedId())
+
+				-- Circle
+				DrawMarker(
+					25, -- Type
+					Config.Garage.X, Config.Garage.Y, Config.Garage.Z - 0.98, -- Position
+					0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
+					1.5, 1.5, 1.5, -- Scale
+					255, 120, 0, 155, -- Color
+					false, true, 2, nil, nil, false -- Extra
+				)
+
+				-- Car
+				DrawMarker(
+					36, -- Type
+					Config.Garage.X, Config.Garage.Y, Config.Garage.Z, -- Position
+					0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
+					0.75, 0.75, 0.75, -- Scale
+					255, 120, 0, 155, -- Color
+					false, true, 2, nil, nil, false -- Extra
+				)
 
 				if Vdist2(PlayerCoords, GarageCoords) <= 1.5 and PlayerVehicle == 0 then
 					ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["GARAGE_HELP"], true, false, 1)
@@ -278,151 +353,119 @@ Citizen.CreateThread(function()
 						end
 					end
 				end
+			end
+		end
+	end
+end)
 
-				-- Blip
-				if MainBlip == nil then
-					MainBlip = AddBlipForCoord(Config.Locker.X, Config.Locker.Y, Config.Locker.Z)
-					SetBlipSprite(MainBlip, 354)
-					SetBlipDisplay(MainBlip, 4)
-					SetBlipScale(MainBlip, 1.5)
-					SetBlipColour(MainBlip, 64)
-					SetBlipAsShortRange(MainBlip, true)
-					BeginTextCommandSetBlipName("STRING")
-					AddTextComponentString(Config.BlipName)
-					EndTextCommandSetBlipName(MainBlip)
+Citizen.CreateThread(function() -- Deleter
+	LastVehicle = 0
+
+	while true do
+		if ESX ~= nil then
+			Citizen.Wait(1)
+
+			if OnDuty == true then
+				PlayerCoords = GetEntityCoords(PlayerPedId())
+				PlayerVehicle = GetVehiclePedIsIn(PlayerPedId())
+
+				IsVehicle = false
+
+				for Index, CurrentVehicle in pairs(Config.Vehicles) do
+					if IsVehicleModel(PlayerVehicle, GetHashKey(CurrentVehicle.SpawnName)) then
+						IsVehicle = true
+					end
 				end
 
-				-- Circle
-				DrawMarker(
-					25, -- Type
-					Config.Locker.X, Config.Locker.Y, Config.Locker.Z - 0.98, -- Position
-					0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-					1.5, 1.5, 1.5, -- Scale
-					255, 120, 0, 155, -- Color
-					false, true, 2, nil, nil, false -- Extra
-				)
-
-				-- Stripes
-				DrawMarker(
-					30, -- Type
-					Config.Locker.X, Config.Locker.Y, Config.Locker.Z, -- Position
-					0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-					0.75, 0.75, 0.75, -- Scale
-					255, 120, 0, 155, -- Color
-					false, true, 2, nil, nil, false -- Extra
-				)
-
-				if OnDuty == true then
+				if IsVehicle == true then
 					-- Circle
 					DrawMarker(
 						25, -- Type
-						Config.Garage.X, Config.Garage.Y, Config.Garage.Z - 0.98, -- Position
+						Config.VehicleDelete.X, Config.VehicleDelete.Y, Config.VehicleDelete.Z - 0.98, -- Position
 						0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-						1.5, 1.5, 1.5, -- Scale
-						255, 120, 0, 155, -- Color
+						3.5, 3.5, 3.5, -- Scale
+						255, 0, 0, 155, -- Color
 						false, true, 2, nil, nil, false -- Extra
 					)
 
 					-- Car
 					DrawMarker(
 						36, -- Type
-						Config.Garage.X, Config.Garage.Y, Config.Garage.Z, -- Position
+						Config.VehicleDelete.X, Config.VehicleDelete.Y, Config.VehicleDelete.Z + 0.5, -- Position
 						0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-						0.75, 0.75, 0.75, -- Scale
-						255, 120, 0, 155, -- Color
+						3.0, 3.0, 3.0, -- Scale
+						255, 0, 0, 155, -- Color
 						false, true, 2, nil, nil, false -- Extra
 					)
 
-					if CurrentJob ~= nil then
-						if CurrentJob.Enabled == false then
-							JobCoords = vector3(CurrentJob.X, CurrentJob.Y, CurrentJob.Z)
-
-							-- Circle
-							DrawMarker(
-								25, -- Type
-								CurrentJob.X, CurrentJob.Y, CurrentJob.Z - 0.98, -- Position
-								0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-								1.5, 1.5, 1.5, -- Scale
-								0, 255, 0, 155, -- Color
-								false, true, 2, nil, nil, false -- Extra
-							)
-
-							-- Question Mark
-							DrawMarker(
-								32, -- Type
-								CurrentJob.X, CurrentJob.Y, CurrentJob.Z, -- Position
-								0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-								0.75, 0.75, 0.75, -- Scale
-								0, 255, 0, 155, -- Color
-								false, true, 2, nil, nil, false -- Extra
-							)
-
-							if Vdist2(PlayerCoords, JobCoords) <= 1.5 then
-								ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["JOB_HELP"], true, false, 1)
-							
-								if IsControlJustPressed(1, 51) then
-									CurrentJob.Enabled = true
-
-									SetNuiFocus(true, true)
-									SendNUIMessage({RequestType = "Visibility", RequestData = true})
-								end
-							end
+					if Vdist2(PlayerCoords, DeleteCoords) <= 3.0 then
+						ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["DELETE_HELP"], true, false, 1)
+					
+						if IsControlJustPressed(1, 51) then
+							SetEntityAsMissionEntity(PlayerVehicle, true, true)
+							DeleteVehicle(PlayerVehicle)
+						end
+					else
+						if LastVehicle ~= PlayerVehicle then
+							LastVehicle = PlayerVehicle
+							ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["MENU_HELP"], false, false, 5000)
 						end
 					end
 
-					if PlayerVehicle ~= 0 then
-						IsVehicle = false
-
-						for Index, CurrentVehicle in pairs(Config.Vehicles) do
-							if IsVehicleModel(PlayerVehicle, GetHashKey(CurrentVehicle.SpawnName)) then
-								IsVehicle = true
-							end
-						end
-
-						if IsVehicle == true then
-							-- Circle
-							DrawMarker(
-								25, -- Type
-								Config.VehicleDelete.X, Config.VehicleDelete.Y, Config.VehicleDelete.Z - 0.98, -- Position
-								0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-								3.5, 3.5, 3.5, -- Scale
-								255, 0, 0, 155, -- Color
-								false, true, 2, nil, nil, false -- Extra
-							)
-
-							-- Car
-							DrawMarker(
-								36, -- Type
-								Config.VehicleDelete.X, Config.VehicleDelete.Y, Config.VehicleDelete.Z + 0.5, -- Position
-								0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
-								3.0, 3.0, 3.0, -- Scale
-								255, 0, 0, 155, -- Color
-								false, true, 2, nil, nil, false -- Extra
-							)
-
-							if Vdist2(PlayerCoords, DeleteCoords) <= 3.0 then
-								ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["DELETE_HELP"], true, false, 1)
-							
-								if IsControlJustPressed(1, 51) then
-									SetEntityAsMissionEntity(PlayerVehicle, true, true)
-									DeleteVehicle(PlayerVehicle)
-								end
-							else
-								ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["MENU_HELP"], true, false, 1)
-							end
-
-							if IsControlJustPressed(1, 167) then
-								if MenuOpened == false then
-									OpenMenu()
-								end
-							end
+					if IsControlJustPressed(1, 167) then
+						if MenuOpened == false then
+							OpenMenu()
 						end
 					end
+				else
+					LastVehicle = 0
 				end
-			else
-				if MainBlip ~= nil then
-					RemoveBlip(MainBlip)
-					MainBlip = nil
+			end
+		end
+	end
+end)
+
+Citizen.CreateThread(function() -- Jobs
+	while true do
+		if ESX ~= nil then
+			Citizen.Wait(1)
+
+			if OnDuty == true and CurrentJob ~= nil then
+				if CurrentJob.Enabled == false then
+					PlayerCoords = GetEntityCoords(PlayerPedId())
+					PlayerVehicle = GetVehiclePedIsIn(PlayerPedId())
+					JobCoords = vector3(CurrentJob.X, CurrentJob.Y, CurrentJob.Z)
+
+					-- Circle
+					DrawMarker(
+						25, -- Type
+						CurrentJob.X, CurrentJob.Y, CurrentJob.Z - 0.98, -- Position
+						0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
+						1.5, 1.5, 1.5, -- Scale
+						0, 255, 0, 155, -- Color
+						false, true, 2, nil, nil, false -- Extra
+					)
+
+					-- Question Mark
+					DrawMarker(
+						32, -- Type
+						CurrentJob.X, CurrentJob.Y, CurrentJob.Z, -- Position
+						0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -- Orientation
+						0.75, 0.75, 0.75, -- Scale
+						0, 255, 0, 155, -- Color
+						false, true, 2, nil, nil, false -- Extra
+					)
+
+					if Vdist2(PlayerCoords, JobCoords) <= 1.5 and PlayerVehicle == 0 then
+						ESX.ShowHelpNotification(Config.TranslationList[Config.Translation]["JOB_HELP"], true, false, 1)
+					
+						if IsControlJustPressed(1, 51) then
+							CurrentJob.Enabled = true
+
+							SetNuiFocus(true, true)
+							SendNUIMessage({RequestType = "Visibility", RequestData = true})
+						end
+					end
 				end
 			end
 		end
